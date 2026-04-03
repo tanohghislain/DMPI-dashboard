@@ -169,13 +169,50 @@
   animation: pulse 5s infinite;
 }
 
+/* Conteneur titre masqué */
+.title-container {
+  width: 100%;
+  overflow: hidden;
+  position: relative;
+ /* effet fade sur les bords */
+  mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+  -webkit-mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+}
+
+/* Le rail qui défile */
+.scroll-track {
+  display: flex;
+  width: max-content;
+  animation: scrollLoop 12s linear infinite;
+}
+
 .dmpi-title{
- font-size:22px;
-  font-weight:700;
+ display: inline-block;
+  white-space: nowrap;
+  font-size: 1.1rem;
+  padding-right: 50px; /* petit espace entre répétitions */
+  font-weight: 500;
   color:#0A66C2;
   letter-spacing:2px;
   margin-top:8px;
   text-shadow:0 0 8px #ced4da;
+  padding-left: 50%;
+   /* Animation */
+  animation: scrollText 12s linear infinite;
+}
+
+.dmpi-title span {
+  padding-right: 20px;
+}
+
+/* Animation gauche → droite */
+@keyframes scrollText {
+  0% {
+    transform: translateX(0%);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
 }
 
 /* animation respiration */
@@ -201,4 +238,11 @@
   0%{background-position:0% 50%}
   50%{background-position:100% 50%}
   100%{background-position:0% 50%}
+}
+
+@media (max-width: 768px) {
+  .dmpi-title {
+    font-size: 0.9rem;
+    animation-duration: 20s; /* plus lent sur mobile */
+  }
 }
