@@ -246,12 +246,14 @@
     animation-duration: 20s; /* plus lent sur mobile */
   }
    .dmpi-logo {
-    width: 120px;        /* réduit la taille sur mobile */
+    width: 100px;        /* réduit la taille sur mobile */
     height: auto;
    /* pulsation plus douce */
-    animation: pulse 2.8s infinite ease-in-out;
-    
-    /* éviter trop d'effet (meilleure perf mobile) */
-    transform: scale(1);
-  }
+    animation: pulse 2.9s infinite ease-in-out;
+}
+
+@keyframes pulseMobile {
+  0%   { transform: scale(1); }
+  50%  { transform: scale(1.05); } /* plus subtil */
+  100% { transform: scale(1); }
 }
