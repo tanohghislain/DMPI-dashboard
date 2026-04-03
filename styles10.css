@@ -250,6 +250,8 @@
     height: auto;
    /* pulsation plus douce */
     animation: pulse 2.9s infinite ease-in-out;
+     /* éviter trop d'effet (meilleure perf mobile) */
+    transform: scale(1);
 }
 
 @keyframes pulseMobile {
