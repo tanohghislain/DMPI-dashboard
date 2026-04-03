@@ -190,13 +190,13 @@
  display: inline-block;
   white-space: nowrap;
   font-size: 1.1rem;
-  padding-right: 60px; /* petit espace entre répétitions */
+  padding-right: 100px; /* petit espace entre répétitions */
   font-weight: 500;
   color:#0A66C2;
   letter-spacing:2px;
   margin-top:8px;
   text-shadow:0 0 8px #ced4da;
-  padding-left: 50%;
+  padding-left: 30%;
    /* Animation */
   animation: scrollText 14s linear infinite;
 }
