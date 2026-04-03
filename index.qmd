@@ -1,0 +1,1195 @@
+---
+title: "Digital Macroeconomic Pulse Index"
+
+format:
+  dashboard:
+    theme: 
+      Yeti #cosmos, Spacelab, Yeti,Zephyr,Cerulean
+      #- olympicdash.scss
+    #scrolling: true
+    css: styles10.css
+    include-after-body: particles10.html
+    orientation: rows
+    page-layout: fill
+    logo: images/dpmicercle2_small.png
+    
+---
+
+```{r}
+
+#| label: reinitialisation et repertoire
+#| include: false
+#| 
+rm(list=ls()) #Remove all objects created
+setwd("D:/tgtanoh/Visibilite/PULSE_index/modèle de DASBORD OPERATIONNEL/modele10")
+.libPaths("D:/tgtanoh/R/win-library/4.5")
+```
+
+```{r}
+#install.packages("bslib")
+#install.packages("bsicons")
+#install.packages("shinydashboard")
+#install.packages("DT")
+#install.packages("leaflet")
+#install.packages("reactable")
+#install.packages("magick")
+#install.packages("magickGUI")
+```
+
+```{r}
+#| label: chargement package
+
+#install.packages("bslib")
+#?value_box si tu veux des codes et modèles
+library(ggplot2)
+library(tidyverse)
+library(plotly)#friendly visuel
+library(bslib)
+library(bsicons)
+library(shiny)
+library(reactable)
+library(shiny)
+library(dplyr)
+library(sf)
+library(leaflet)
+library(stringr)
+library(lubridate)
+library(tidyr)
+library(zoo)
+library(htmltools)
+library(magickGUI)
+library(magick)
+library(stringr)
+## Acceuil {orientation="row" scrolling="true"}
+#
+```
+
+
+```{r}
+#| label: Préparation des données DMPI
+#| include: false
+
+DPMI_ind <- read.csv("DPMI_men.csv")
+DPMI_ind$mois <- as.Date(DPMI_ind$mois)
+```
+
+```{r}
+mois_dm = DPMI_ind [,1]
+DMPI = DPMI_ind [,2]
+```
+
+
+```{r}
+#| label:  mise en TS
+#| include: false
+
+DMPI_frame <- data.frame(mois_dm, DMPI)
+```
+
+```{r}
+#| label: Préparation value box DMPI
+#| include: false
+
+DMPI_actuelle <- tail(DMPI, 1)
+DMPI_precedente <- tail(DMPI, 2)[1]
+
+variation_DMPI <- 100 *(DMPI_actuelle / DMPI_precedente-1)
+
+
+DMPI_actuelle1 <- tail(DMPI, 2)[1]
+DMPI_precedente1 <- tail(DMPI, 3)[1]
+
+variation_DMPI1 <- 100 *(DMPI_actuelle1 / DMPI_precedente1-1)
+```
+
+
+
+
+
+
+```{r}
+#| label: Préparation des données BDIP
+#| include: false
+
+BDIP_ind <- read.csv("IPD_DPMI_men.csv")
+BDIP_ind$date <- as.Date(BDIP_ind$date)
+```
+
+```{r}
+#| label: séparation avec colonne date
+#| include: false
+
+mois = BDIP_ind [,1]
+BDIP = BDIP_ind [,2]
+class(mois)
+```
+
+```{r}
+#| label: fusion avec date au format et mise en TS
+#| include: false
+
+BDIP_frame <- BDIP_ind %>%
+  dplyr::rename(
+    mois = date   # 🔥 très important
+  ) %>%
+  dplyr::mutate(
+    mois = as.Date(mois),
+    BDIP  = as.numeric(indice_IPD) # adapte au vrai nom colonne
+  )
+
+BDIP_ts <- ts(BDIP, start=c(2015,1), frequency=12)
+```
+
+
+```{r}
+#| label: Préparation value box BDIP
+#| include: false
+
+IPD_actuelle <- tail(BDIP, 1)
+IPD_precedente <- tail(BDIP, 2)[1]
+
+variation_IPD <- 100 *(IPD_actuelle / IPD_precedente-1)
+
+
+IPD_actuelle1 <- tail(BDIP, 2)[1]
+IPD_precedente1 <- tail(BDIP, 3)[1]
+
+variation_IPD1 <- 100 *(IPD_actuelle1 / IPD_precedente1-1)
+  
+
+```
+
+
+
+```{r}
+#| label: Préparation des données IAI
+#| include: false
+
+#Préparation des données
+#Chargement  bases
+#je mets lautre methode de chargement de fichier CVS au cas ou
+
+#IPD_ind <- read.csv(
+#  "IPD_DPMI_men.csv",
+ # sep = ",",
+#  stringsAsFactors = FALSE
+#)
+
+#ici c'est lindice seul
+IAI_ind <- read.csv("IAI_DPMI_men.csv")
+IAI_ind$mois <- as.Date(IAI_ind$mois)
+IAI = IAI_ind [,2]
+
+#ici c'est glissement seul
+IAI_DPMI_DASH <- read.csv("IAI_DPMI_DASH.csv")
+IAI_DPMI_DASH$ga_time <- as.Date(IAI_DPMI_DASH$ga_time)
+
+
+#ATTENTION ATTENTION NE SEPARE PAS LES DATES DEs DATA FRAME suivant CAR PREVISION (3mois) et indice on leur intitulé colonne "date" identique. il faut garder les datas frame pour faire les graphes
+
+df_hist <- read.csv("df_hist.csv")
+df_hist$date <- as.Date(df_hist$date)
+
+df_fc <- read.csv("df_fc.csv")
+df_fc$date <- as.Date(df_fc$date)
+
+```
+
+
+```{r}
+#| label: Préparation value box IAI
+#| include: false
+
+#valeur prédite
+variation_IAI <- tail(df_fc$GA_fc, 3)[1]#j'extrait la valeur prédite pour mars"
+
+#valeur réalisée
+IAI_actuelle1 <- tail(IAI, 1)#si ca ne passe pas prend le ts "IPD_ts"
+IAI_precedente1 <- tail(IAI, 13)[1] #glissement annuel attention pas mensuel
+
+variation_IAI1 <- 100 *(IAI_actuelle1 / IAI_precedente1-1)
+
+  
+#cas si on à deux modalités de comparaison
+#color_box <- ifelse(variation_IPD > 0, "danger", "success")
+
+#commentaire <- ifelse(
+ #variation_IPD > 0,
+ #"climat socio-économique en amélioration",
+ #"climat socio-économique en morose"
+#)
+```
+
+
+```{r}
+#| label: Préparation des données IOC
+#| include: false
+
+IOC_ind <- read.csv("IOC_DPMI_men.csv")
+IOC_ind$mois <- as.Date(IOC_ind$mois)
+IOC = IOC_ind [,2]
+
+IOC_DPMI_DASH <- read.csv("IOC_DPMI_DASH.csv")
+IOC_DPMI_DASH$ga_time_ioc <- as.yearqtr(IOC_DPMI_DASH$ga_time_ioc)
+IOC_DPMI_DASH$ga_time_ioc <- as.Date(IOC_DPMI_DASH$ga_time_ioc)
+
+
+df_hist_ioc <- read.csv("df_hist_ioc.csv")
+df_hist_ioc$date_ioc <- as.yearqtr(df_hist_ioc$date_ioc)
+df_hist_ioc$date_ioc <- as.Date(df_hist_ioc$date_ioc)
+
+df_fc_ioc <- read.csv("df_fc_ioc.csv")
+df_fc_ioc$date_ioc <- as.yearqtr(df_fc_ioc$date_ioc)
+df_fc_ioc$date_ioc <- as.Date(df_fc_ioc$date_ioc)
+
+```
+
+
+```{r}
+#| label: Préparation value box IOC
+#| include: false
+
+variation_IOC <- tail(df_fc_ioc$GA_fc_ioc, 2)[1]
+
+variation_IOC1 <- tail(df_fc_ioc$GA_fc_ioc, 3)[1]
+  
+```
+
+```{r}
+#| label: réduction des tailles des logo
+
+#img <- image_read("images/dmpilogo211.png")
+#img1 <- image_read("images/dpmicercle2.png")
+
+# Redimensionner (ex : largeur 300px)
+#img_small <- image_resize(img, "300")
+#img_small1 <- image_resize(img1, "300")
+
+#image_write(img_small, "images/dmpilogo211_small.png")
+#image_write(img_small1, "images/dpmicercle2_small.png")
+```
+
+
+
+
+# Acceuil {orientation="row" }
+
+## colonne1 {.sidebar}
+
+### {height="40%"}
+
+
+### {height="30%"}
+
+### Contact {height="30%"}
+
+<i class="bi bi-envelope-arrow-up"></i> [**Suggestions**](mailto:tanoh.ghislain.gt@gmail.com)
+
+
+<i class="bi bi-linkedin"></i> [**LinkedIn**](https://www.linkedin.com/in/ghislain-tanoh-521a2967)
+
+
+<i class="bi bi-file-text-fill"></i> [**À propos du DMPI**](apropos_DMPI.pdf)
+
+
+
+
+## on crée colonne2 pour garder la forme A propos {height="350px"}
+
+```{=html}
+<div class="dmpi-network">
+
+  <canvas id="network-canvas"></canvas>
+
+  <div class="logo-box">
+    <img src="images/dmpilogo211_small.png" class="dmpi-logo">
+
+    <div class="title-container">
+      <div class="dmpi-title">
+         <span>L’économie de demain se lit déjà dans les données d’aujourd’hui.</span>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+```
+
+```{r}
+#<div class="dmpi-title">DPMI</div> la mis een HTML plus haut evite le sproblème de lecture et identation
+```
+
+
+
+# Inflation (IAI) 
+
+## ligne 1
+
+### colonne a1 {width="80%"}
+
+#### ligne a11 {height="50%"}
+
+
+```{r}
+  ####### Visualisation IPD####
+#| label: Visualiser IAI fonction bien
+#| include: false
+
+ p <- ggplot()
+
+    # =========================
+    # GA calculé
+    # =========================
+   
+      p <- p +
+      #  geom_line(
+       #   data = df_hist,
+        #  aes(x = date, y = GA_calc, color = "Indice IAI calculé"),
+         # linewidth = 1.1
+      #  ) +
+     #   geom_smooth(color = "pink",
+     #     data = df_hist,
+       #   aes(x = date, y = GA_calc),
+       #   se = FALSE,
+       #   linetype = "dashed",
+       #   linewidth = 0.7
+        #)
+      
+      geom_smooth(
+  data = df_hist,
+  aes(x = date, y = GA_calc, color = "Tendance de l'IAI calculé"),
+  se = FALSE,
+  linetype = "dotdash",
+  linewidth = 0.8
+)
+     #"blank" (0)"solid" "dashed" "dotted" "dotdash" "longdash" "twodash" 
+    
+
+    # =========================
+    # GA officiel
+    # =========================
+    
+      p <- p +
+        geom_line(
+          data = df_hist,
+          aes(x = date, y = GA_off, color = "Inflation officielle (ANStat-Côte d'Ivoire)"),
+          linewidth = 1
+        ) +
+        
+        geom_smooth(
+  data = df_hist,
+  aes(x = date, y = GA_off, color = "Inflation officielle (ANStat-Côte d'Ivoire)"),
+  se = FALSE,
+  linetype = "dotted",
+  linewidth = 0.7
+)
+
+         # =========================
+    # Finalisation graphique
+    # =========================
+    # =========================
+# Finalisation graphique
+# =========================
+ p <- p +
+    scale_color_manual(
+      values = c(
+        "Tendance de l'IAI calculé" = "#8c264b",
+        "Inflation officielle (ANStat-Côte d'Ivoire)" = "#1f729b",
+        "GA forecast" = "#d62728"
+      )
+    ) +
+   
+    labs(
+      x = "",
+      y = "Glissement annuel (%)",
+      color = "",
+      title = str_wrap("Signal de l'IAI VS inflation réalisée", width = 40)
+    ) +
+    theme_minimal() +
+    theme(
+      plot.title = element_text(hjust = 0.5, face = "bold", size = 11, lineheight = 1.1),
+      legend.position = "bottom",
+      legend.text = element_text(size = 9),
+       legend.key.width = unit(1, "cm"),  # évite compression
+      axis.title.y = element_text(size = 9, face = "bold"),
+     axis.text.y = element_text(size = 8),
+     axis.text.x = element_text(size = 8),
+    panel.grid.minor = element_blank()
+    ) +
+guides(color = guide_legend(nrow = 2))
+ 
+  # 👉 Transformation en plotly
+ ggplotly(p) %>%
+  style(
+    hovertemplate = paste(
+      #"%{x|%Y-%m}<br>",
+      "%{y:.1f}",
+      "<extra></extra>"
+    ),
+    traces = 1:3
+  )  %>%
+    layout(
+      legend = list(
+        orientation = "h",
+        x = 0.5,
+        xanchor = "center",
+        y = -0.2
+      )
+    )
+
+```
+
+#### ligne a12 {height="50%"}
+
+##### colonne a121 {width="60%"}
+```{r}
+#| title: Projection du signal de l'IAI  
+
+ # Je TS le gacalc de mon dataframe avant de windows
+
+ga_calc1 <- ts(IAI_DPMI_DASH$ga_calc, start=c(2016,1), frequency=12)
+ga_calc1 <- window(ga_calc1, start = c(2024,1))
+
+ga_time1 <- seq(
+  from = as.Date("2024-01-01"),
+  by   = "month",
+  length.out = length(ga_calc1)
+)
+
+# ===============================
+# 3️⃣ DATAFRAME FINAL
+# ===============================
+
+df_hist1 <- data.frame(
+  date1 = ga_time1,
+  GA_calcv1 = as.numeric(ga_calc1)
+)
+
+##################""
+
+p <- ggplot() +
+
+    geom_line(
+      data = df_hist1,
+      aes(x = date1, y = GA_calcv1, color = "Signal indice IAI"),
+      linewidth = 0.5
+    ) +
+
+    geom_line(
+      data = df_fc,
+      aes(x = date, y = GA_fc, color = "Prévisions"),
+      linetype = "dashed",
+      linewidth = 0.5
+    ) +
+
+    geom_ribbon(
+      data = df_fc,
+      aes(x = date, ymin = lower, ymax = upper),
+      fill = "red",
+      alpha = 0.15
+    ) +
+
+    scale_color_manual(
+      values = c(
+        "Signal indice IAI" = "#1f97b6",
+        "Prévisions" = "#d62728"
+      )
+    ) +
+
+  geom_vline(
+    xintercept = as.Date("2026-02-01"),#Idem mois actuel-1
+    color = "grey40",
+    linetype = "longdash",
+    linewidth = 1
+  )+
+    
+  labs(
+    x = "",
+    y = "Glissement annuel (%)",
+    color = "",
+    #title = "Projection du signal de l'IAI ",
+    #subtitle = ""
+  ) +
+  theme_minimal() +
+      theme(
+    plot.title = element_text(hjust = 0.5, size = 12, face = "bold"),
+   # legend.position = "bottom",
+    legend.text = element_text(size = 11), 
+   axis.title.y = element_text(size = 9, face = "bold"),
+     axis.text.y = element_text(size = 8),
+     axis.text.x = element_text(size = 8),
+   
+    panel.grid.minor = element_blank())
+    
+
+ # ggplotly(p)
+  ggplotly(p) %>%
+  style(
+    hovertemplate = paste(
+      #"%{x|%Y-%m}<br>",
+      "%{y:.1f}",
+      "<extra></extra>"
+    ),
+    traces = 1:3
+  ) %>%
+  layout(
+    legend = list(
+      orientation = "h",
+      x = 0.5,
+      xanchor = "center",
+      y = -0.25
+    )
+  )
+
+
+```
+
+##### colonne a122 {width="40%"}
+::: {.card title="Commentaires"}
+
+```{r}
+#| title: commentaire de box IAI
+library(lubridate)
+Encour_mois_IAI <- max(IAI_DPMI_DASH$ga_time)
+
+mois_suivant_IAI <- Encour_mois_IAI %m+% months(1)
+
+#mois_nom <- format(Encour_mois, "%B")
+#annee <- format(Encour_mois, "%Y")
+
+mois_nom_IAI1 <- month(Encour_mois_IAI, label = TRUE, abbr = FALSE)
+mois_nom_IAI <- month(mois_suivant_IAI, label = TRUE, abbr = FALSE)
+
+# Convertir en simple texte (sinon c'est un "Factor")
+mois_nom_IAI1 <- as.character(mois_nom_IAI1)
+mois_nom_IAI <- as.character(mois_nom_IAI)
+
+annee_num_IAI1 <- year(Encour_mois_IAI)
+annee_num_IAI <- year(mois_suivant_IAI)
+
+diagnostic_IAI <- case_when(
+  variation_IAI > 0  ~ "Les perceptions de pressions inflationnistes, par rapport à la même période un an plus tôt, affichent une hausse. Cette progression des anticipations des agents économiques indique un éventuel maintien de l'inflation en territoire positif en   ",
+  variation_IAI == 0 ~ "Comparé au mois précédent, les perceptions d'anxiété inflationniste, par rapport à la même période un an plus tôt, restent contenue. Cette évolution des anticipations des agents économiques indiquent une éventuelle stabilité des prix en",
+  variation_IAI < 0 ~ "Les perceptions de tensions sur les prix, par rapport à la même période un an plus tôt, sont en baisses. Cette progression des anticipations des agents économiques indique un éventuel maintien de l'inflation en territoire négatif en",
+  TRUE ~ "Risque inflationniste"
+)
+
+delta_IAI = round(variation_IAI,2)-round(variation_IAI1,2)
+  
+diagnostic_IAI1 <- case_when(
+  delta_IAI > 0  ~ "Soit une augmentation de +",
+  delta_IAI == 0 ~ "Soit ",
+  delta_IAI < 0 ~ "Soit une diminution de ",
+  TRUE ~ "Risque de croissance"
+)
+
+passage_IAI="Le glissement annuel de l'indice devrait passer de "
+AA="à"
+en_IAI="en"
+pourcent="%"
+pdp="points de pourcentage (pdp)"
+
+
+ponctua="."
+
+phrase_IAI <- paste(diagnostic_IAI, mois_nom_IAI, paste0(annee_num_IAI,ponctua))
+
+phrase_IAI3 <- paste(passage_IAI,  round(variation_IAI1,1),pourcent,en_IAI,mois_nom_IAI1,annee_num_IAI1, AA, round(variation_IAI,1),pourcent, en_IAI,mois_nom_IAI, paste0(annee_num_IAI,ponctua))
+
+phrase_IAI4 <-paste(diagnostic_IAI1, round(delta_IAI,1),pdp,ponctua)
+
+phrase_IAI4 <- paste0(
+  "<span style='font-size:13px;text-align: justify;'>",
+  phrase_IAI, " ",
+  "<br><br>",  # 🔥 saut de ligne ici
+    "<b style=';font-weight:600;'>",phrase_IAI3, "</b> "," ",
+   diagnostic_IAI1, " ",
+  "<b style='color:#1f97b6;font-weight:600;'>", round(delta_IAI,1), " ",pdp, "</b> ",
+  en_IAI, " ",
+  mois_nom_IAI, " ",
+  annee_num_IAI,
+  ponctua,
+  " Les signaux numériques manifestés par les agents économiques semblent indiquer une décélération de l'inflation (Hausse moins importante).",
+  "</span>"
+)
+
+
+en="en"
+phrase_IAI2 <- paste(en_IAI,mois_nom_IAI, annee_num_IAI) #pour value box
+
+
+HTML(phrase_IAI4)
+
+
+```
+:::
+
+### colonne a2 {width="20%"}
+
+#### lignea21
+
+```{r}
+#| title: Chiffre clé de box IAI
+ library(htmltools)
+
+color_box_IAI <- case_when(
+  variation_IAI > 0  ~ "secondary", #danger, secondary
+  variation_IAI == 0 ~ "",
+  TRUE               ~ "light"  # couleur créee dans css sinon directement #fce4ec
+)
+
+#flèche au dessus
+
+#arrow <- ifelse(
+#  variation_IPD > 0,
+#  "<span style='color:#2ca02c;font-weight:bold;'>▲ +</span>",
+#  ifelse(
+#    variation_IPD < 0,
+#    "<span style='color:#d62728;font-weight:bold;'>▼ -</span>",
+#    "<span style='color:#1f77b4;font-weight:bold;'>●</span>"
+#  )
+#)
+
+
+arrow_IAI <- ifelse( variation_IAI > 0, "🔴 ▲+",
+
+ ifelse( variation_IAI < 0,"🟢 ▼-","🔵 =" ))
+
+
+#flèche à côté V1
+
+#value_big <- paste0(
+#  "<span style='font-size:48px;font-weight:700;'>",
+#  round(variation_IPD,2),
+#  "</span> ",
+#  arrow
+#)
+
+#flèche à côté V2
+#value_big <- paste0(
+#  "<div style='text-align:center'>",
+ # "<span style='font-size:48px;font-weight:700;'>",
+ # round(variation_IPD,2),
+#  "%</span>",
+ # arrow,
+ # "</div>"
+#)
+
+
+value_big_IAI <- paste0(
+  "<div style='text-align:center'>",
+  "<div style='font-size:26px;'>", arrow_IAI, "</div>",
+  "<span style='font-size:48px;font-weight:700;'>",
+  round(variation_IAI,1),
+  "%</span>",
+  "</div>"
+)
+
+titre_IAI<- paste0(
+  "<span style='font-size:26px;text-align:center;'>",
+  "Signal prévu",
+   "<div style='font-size:26px;text-align:center;'>", phrase_IAI2, "</div>",
+  "</span>"
+)
+
+value_box(
+  title = HTML(titre_IAI),
+  value = HTML(value_big_IAI),
+  theme = value_box_theme(name = color_box_IAI, fg = "#0B538E")
+  #height = "40%"
+  #subtitle = HTML(arrow),
+  #caption = ""
+)
+```
+
+```{r}
+#| title: Chiffre clé de box IAI commentaire
+#pour le commmentaire
+
+
+color_box_IAI2 <- case_when(
+  variation_IAI > 0  ~ "#FF6469",
+  variation_IAI == 0 ~ "info",
+  TRUE               ~ "success"
+)
+
+color_box_IAI3 <- case_when(
+  variation_IOC > 0  ~ "#FFFFFF",
+  variation_IOC == 0 ~ "#1E0F1C",
+  TRUE               ~ "#FFFFFF"
+)
+
+
+
+
+commentaire_IAI <- ifelse(
+  variation_IAI > 0,
+  "Anxiété d'inflation en hausse",
+  "Anxiété d'inflation en baisse"
+)
+
+
+commentaire_IAI <- paste0(
+  "<div style='text-align:center'>",
+  "<span style='font-size:35px;font-weight:500;'>",
+  commentaire_IAI,
+  "</span>",
+  "</div>"
+)
+
+
+value_box(
+  title = "",
+  value = HTML(commentaire_IAI),
+  theme = value_box_theme(name = color_box_IAI2, bg=color_box_IAI2, fg=color_box_IAI3),
+  #height = "40%",
+  class = "border"
+)
+
+
+#value = paste0(arrow, " ", round(variation_IPD,2), " %"),
+```
+
+
+# Développement (BDIP) 
+
+## ligne 1
+
+### colonne a1 {width="80%"}
+
+#### ligne IPD a11 {height="70%"}
+
+```{r}
+####### Visualisation IPD####
+#| label: Visualiser IPD fonction bien
+#| include: false
+
+      #downloadButton("downloadPNG", "Télécharger PNG")
+
+#graphique maintenant
+ p <- ggplot()
+  p <- p +
+     geom_line(
+          data = BDIP_frame,
+         aes(x = mois, y = BDIP, color = "BDIP"),
+        linewidth = 1.1
+        ) +
+    geom_smooth(
+         data = BDIP_frame,
+          aes(x = mois, y = BDIP, color ="BDIP_trend" ),
+          se = FALSE,
+          linetype = "dashed",#dotdash
+          linewidth = 0.7
+        ) 
+      
+
+
+   
+# Finalisation graphique
+# =========================
+
+p <- p +
+    scale_color_manual(
+      values = c(
+        "BDIP_trend" = "#8c564b",
+        "BDIP" = "#1f729b"
+       # "GA forecast" = "#d62728"
+      )
+    )+
+    scale_y_continuous(
+    name = "Niveau de l'indice"
+  ) +
+  
+  labs(title = str_wrap("Baromètre du Développement Institutionnel Perçu ", width = 40),
+       x = "",
+       color = "") +
+  theme_minimal() +
+ theme(
+      plot.title = element_text(hjust = 0.5, face = "bold", size = 12, lineheight = 1.1),
+     legend.position = "",
+      legend.text = element_text(size = 11),
+     legend.key.width = unit(1, "cm"),  # évite compression
+     axis.title.y = element_text(size = 9, face = "bold"),
+     axis.text.y = element_text(size = 8),
+     axis.text.x = element_text(size = 8),
+      panel.grid.minor = element_blank()
+    )+
+guides(color = guide_legend(nrow = 2))
+       
+        # 👉 Transformation en plotly
+ ggplotly(p) %>%
+  style(
+    hovertemplate = paste(
+      #"%{x|%Y-%m}<br>",
+      "%{y:.1f}",
+      "<extra></extra>"
+    ),
+    traces = 1:2
+  ) %>%
+    layout(
+      legend = list(
+        orientation = "h",
+       x = 0.5,
+        xanchor = "center",
+        y = -0.2
+      )
+    )
+
+```
+
+#### ligne a12 {height="30%"}
+
+##### colonne a121 {width="60%"}
+
+##### colonne texta122 {width="40%"}
+
+
+::: {.card title="Commentaire"}
+
+
+```{r}
+#| title: commentaire de box BDIP
+library(lubridate)
+Encour_mois <- max(mois)
+mois_precedent_IPD <- Encour_mois %m-% months(1)
+#mois_nom <- format(Encour_mois, "%B")
+#annee <- format(Encour_mois, "%Y")
+
+mois_nom <- month(Encour_mois, label = TRUE, abbr = FALSE)
+mois_nom_IPD <- month(mois_precedent_IPD, label = TRUE, abbr = FALSE)
+
+# Convertir en simple texte (sinon c'est un "Factor")
+mois_nom <- as.character(mois_nom)
+mois_nom_IPD <- as.character(mois_nom_IPD)
+
+annee_num <- year(Encour_mois)
+annee_num_IPD <- year(mois_precedent_IPD)
+
+diagnostic <- case_when(
+  variation_IPD > 0  ~ "Comparé à la progression du mois précédent, le climat socio-économique et institutionnel est en amélioration en ",
+  variation_IPD == 0 ~ "Comparé au mois précédent, le climat socio-économique et institutionnel est stable en",
+  variation_IPD < 0 ~ "Comparé au mois précédent, le climat socio-économique et institutionnel est morose en",
+  TRUE ~ "Climat socio-économique"
+)
+
+
+delta_IPD = round(variation_IPD,2)-round(variation_IPD1,2)
+  
+diagnostic_IPD <- case_when(
+  delta_IPD > 0  ~ "Soit une augmentation de +",
+  delta_IPD == 0 ~ "Soit ",
+  delta_IPD < 0 ~ "Soit une diminution de ",
+  TRUE ~ "BDIP"
+)
+
+en_dpm="En"
+passage_IPD="La variation de l'indice est passé de "
+AA="à"
+en_IPD="en"
+pourcent="%"
+pdp="points de pourcentage (pdp)"
+
+phrase <- paste(diagnostic, mois_nom, paste0(annee_num,ponctua))
+
+phrase_IPD <- paste(passage_IPD,  round(variation_IPD1,1),pourcent,en_IPD,mois_nom_IPD,annee_num_IPD, AA, round(variation_IPD,1),pourcent, en_IPD,mois_nom, paste0(annee_num,ponctua))
+
+phrasex <- paste(en_dpm, mois_nom, annee_num) #pour value box
+
+
+
+phrase_IPD1 <-paste(diagnostic_IPD, round(delta_IPD,1),pdp,ponctua)
+
+
+phrase_IPD1 <- paste0(
+  "<span style='font-size:15px;text-align: justify;'>",
+  phrase, " ",
+  "<br><br>",  # 🔥 saut de ligne ici
+    "<b style=';font-weight:600;'>",phrase_IPD, "</b> "," ",
+   diagnostic_IPD, " ",
+  "<b style='color:#1f97b6;font-weight:600;'>", round(delta_IPD,1), " ",pdp, "</b> ",
+  en_IAI, " ",
+  mois_nom, " ",
+  annee_num,
+  ponctua,
+  "</span>"
+)
+
+
+HTML(phrase_IPD1)
+
+
+```
+
+:::
+
+### colonne a2 {width="20%"}
+
+#### lignea21 valbox 
+
+```{r}
+#| title: Chiffre2 clé de box BDIP
+#pour la valeur mensuelle de l'Indice
+#div c'est saut à la ligne span c'est espace
+
+#ind_big <- paste0(
+#  "<span style='font-size:48px;font-weight:700;'>",
+#  round(IPD_actuelle,2),
+#  "</span>"
+#)
+
+
+titre_IPD<- paste0(
+  "<span style='font-size:26px;text-align:center;'>",
+  "Indice du mois",
+   "<div style='font-size:26px;text-align:center;'>", "</div>",
+  "</span>"
+)
+
+
+ind_big <- paste0(
+  "<div style='text-align:center'>",
+  "<div style='font-size:48px;font-weight:700;'>",
+  round(IPD_actuelle,1),
+  "</div>",
+  "</div>"
+)
+
+value_box(
+  title = HTML(titre_IPD),
+  value = HTML(ind_big),
+  theme = "text-info",
+  #height = "20%",
+    #value_box_theme(name = "orange", bg = "#0B538E"),
+  #"text-purple","text-success",
+    #value_box_theme(name = "text-danger", fg = "#FFB6C1"),
+    #value_box_theme(bg = "#e6f2fd", fg = "#0B538E"), 
+  class = "border"
+)
+
+
+```
+
+
+```{r}
+#| title: Chiffre clé de box BDIP
+ library(htmltools)
+
+color_box <- case_when(
+  variation_IPD > 0  ~ "light", #danger, secondary
+  variation_IPD == 0 ~ "",
+  TRUE               ~ "light"  # couleur créee dans css sinon directement #fce4ec
+)
+#flèche au dessus
+
+#arrow <- ifelse(
+#  variation_IPD > 0,
+#  "<span style='color:#2ca02c;font-weight:bold;'>▲ +</span>",
+#  ifelse(
+#    variation_IPD < 0,
+#    "<span style='color:#d62728;font-weight:bold;'>▼ -</span>",
+#    "<span style='color:#1f77b4;font-weight:bold;'>●</span>"
+#  )
+#)
+
+
+arrow <- ifelse( variation_IPD > 0, "🟢 ▲+",
+
+ ifelse( variation_IPD < 0,"🔴 ▼-","🔵 =" ))
+
+
+#flèche à côté V1
+
+#value_big <- paste0(
+#  "<span style='font-size:48px;font-weight:700;'>",
+#  round(variation_IPD,2),
+#  "</span> ",
+#  arrow
+#)
+
+#flèche à côté V2
+#value_big <- paste0(
+#  "<div style='text-align:center'>",
+ # "<span style='font-size:48px;font-weight:700;'>",
+ # round(variation_IPD,2),
+#  "%</span>",
+ # arrow,
+ # "</div>"
+#)
+
+
+
+
+
+titre_IPDmen <- paste0(
+  "<div style='text-align:center'>",
+  "<span style='font-size:23px;font-weight:500;'>",
+   phrasex,
+  "</span>",
+  "</div>"
+)
+
+
+value_big <- paste0(
+  "<div style='text-align:center'>",
+  "<div style='font-size:23px;'>", arrow, "</div>",
+  "<div style='font-size:23px;'>","", "</div>",
+  "<span style='font-size:40px;font-weight:600;'>",
+  round(variation_IPD,1),
+  "%</span>",
+  "</div>"
+)
+
+
+value_box(
+  title = HTML(titre_IPDmen),
+  value = HTML(value_big),
+  theme = value_box_theme(name = color_box, fg = "#0B538E")
+  #height = "40%"
+  #subtitle = HTML(arrow),
+  #caption = ""
+)
+```
+
+```{r}
+#| title: Chiffre clé de box BDIP commentaire
+#pour le commmentaire
+
+
+color_box2 <- case_when(
+  variation_IPD > 0  ~ "success",
+  variation_IPD == 0 ~ "info",
+  TRUE               ~ "#FF6469"
+)
+color_box22 <- case_when(
+  variation_IPD > 0  ~ "#FFFFFF",
+  variation_IPD == 0 ~ "#1E0F1C",
+  TRUE               ~ "#FFFFFF"
+)
+
+
+
+commentaire <- ifelse(
+  variation_IPD > 0,
+  "Perception positive",
+  "Perception négative"
+)
+
+
+commentaire <- paste0(
+  "<div style='text-align:center'>",
+  "<span style='font-size:35px;font-weight:500;'>",
+   commentaire,
+  "</span>",
+  "</div>"
+)
+
+
+
+value_box(
+  title = "",
+  value = HTML(commentaire),
+  theme = value_box_theme(name = color_box2, bg=color_box2,fg=color_box22),
+  #height = "30%",
+  class = "border"
+)
+
+
+#value = paste0(arrow, " ", round(variation_IPD,2), " %"),
+```
+
+# A propos {scrolling="true"}
+<div style="max-width: 1000px; margin: auto;">
+
+<p style="text-align: center;color: #1f97b6;
+  letter-spacing: 1px;font-size: 30px;font-weight:500;">
+**Digital Macroeconomic Pulse Index (DMPI)**
+</p>
+
+<p style="text-align: center;color: #1f97b6;
+  letter-spacing: 1px;font-size: 25px;font-weight:500;">
+**Indice numérique avancé de conjoncture macroéconomique**
+</p>
+
+<p style="text-align: justify; font-size: 20px; line-height: 1.6;">
+Le **Digital Macroeconomic Pulse Index (DMPI)** est un indicateur innovant qui mesure l’évolution de l’économie ivoirienne à partir des **données numériques et du comportement digital des agents économiques**. Il vise à fournir un signal précoce sur la dynamique macroéconomique en exploitant des informations disponibles en temps réel.
+</p>
+
+
+<p style="text-align: justify; font-size: 20px; line-height: 1.6;">
+<strong>1. Contexte </strong>
+</p>
+
+<p style="text-align: justify; font-size: 20px; line-height: 1.6;">
+Au cours de la dernière décennie, la Côte d’Ivoire a connu une **transformation digitale rapide**, soutenue par des investissements importants dans les infrastructures de télécommunication et les technologies numériques. Selon les statistiques nationales disponibles dans le [Bilan 2011-2025 du Gouvernement](https://www.gouv.ci/uploads/publications/175819822877.pdf), le pays comptait en 2025 :
+</p>
+
+
+
+<ul style="text-align: justify; font-size: 20px; line-height: 1.8;margin-left: 20px;">
+  <li><strong>60,5 millions d’abonnés à la téléphonie mobile</strong>, (pour une population totale de plus de 29,4 millions d’habitants [selon le RGPH 2021](https://www.anstat.ci/assets/publications/files/File_val_indicateur1701358694.pdf)) ;</li>
+  <li><strong>35,5 millions d’abonnements à internet mobile ;</strong></li>
+  <li>un <strong>taux de pénétration de l’internet mobile supérieur à 185 %.</strong></li>
+</ul>
+
+
+<p style="text-align: justify; font-size: 20px; line-height: 1.6;">
+Cette expansion du numérique s’accompagne d’une production massive de **données comportementales en temps réel**, issues notamment des recherches en ligne et des contenus médiatiques. Dans plusieurs économies avancées, ces données sont désormais utilisées pour construire des **indicateurs à haute fréquence**, analyser le sentiment économique et réaliser des **prévisions immédiates (nowcasting)** lorsque les statistiques officielles ne sont pas encore disponibles.
+</p>
+
+<p style="text-align: justify; font-size: 20px; line-height: 1.6;">
+Cependant, à ce jour, un grand nombre de pays africains ne disposent pas d’un cadre structuré permettant une exploitation optimale de cette masse de données. 
+C’est dans ce contexte que mettre en place un Indice numérique avancé de conjoncture macroéconomique vise à proposer une approche innovante en Afrique francophone. Le DMPI est **un outil complémentaire aux statistiques traditionnelles**, permettant aux décideurs publics, aux entreprises et aux analystes de mieux anticiper l’évolution de l’économie, notamment en période de chocs ou d’incertitude.
+</p>
+
+
+<p style="text-align: justify; font-size: 20px; line-height: 1.6;">
+<strong>2. Composition de l’indice</strong>
+</p>
+
+<p style="text-align: justify; font-size: 20px; line-height: 1.6;">
+    Le DMPI combine trois sous-indicateurs complémentaires :
+</p>  
+    
+<ul style="text-align: justify; font-size: 20px; line-height: 1.8;margin-left: 20px;">
+<li><strong>l'Indice d’Anxiété Inflationniste (IAI)</strong> : mesure les préoccupations liées à la hausse des prix ;</li>
+<li><strong>l'Indice d’Optimisme de Croissance (IOC)</strong>: capte les perceptions relatives aux perspectives d’activité économique ;</li>
+<li><strong>le Baromètre du Développement Institutionnel Perçu (BDIP)</strong>: reflète la perception du développement institutionnel et du climat socio-économique.</li>
+</ul>
+
+
+<p style="text-align: justify; font-size: 20px; line-height: 1.6;">
+<strong>2. Sources de données</strong>
+</p>
+
+<p style="text-align: justify; font-size: 20px; line-height: 1.6;">
+    Le DMPI repose principalement sur deux types de données numériques :
+</p>
+
+<ul style="text-align: justify; font-size: 20px; line-height: 1.8;margin-left: 20px;">
+<li><strong>Les données de recherche en ligne</strong>, qui reflètent la popularité relative de certaines requêtes effectuées sur les moteurs de recherche.</li>
+<li><strong>Les contenus de la presse numérique</strong>, analysés grâce aux techniques <strong>de traitement automatique du langage naturel (NLP)</strong>, afin d’identifier les tonalités économiques (optimisme, pessimisme ou incertitude) présentes dans l’actualité.</li>
+</ul>
+
+<p style="text-align: justify; font-size: 20px; line-height: 1.6;">
+<strong>4. Intérêt et limites</strong>
+</p>
+
+<p style="text-align: justify; font-size: 20px; line-height: 1.6;">
+Le DMPI permet d’**identifier rapidement les signaux émergents de l’économie**, en capturant les perceptions et comportements des acteurs en temps réel.
+</p>   
+
+
+<p style="text-align: justify; font-size: 20px; line-height: 1.6;">
+ Cependant, la précision de l’indicateur dépend de certains facteurs structurels tels que :
+</p> 
+ 
+<ul style="text-align: justify; font-size: 20px; line-height: 1.8;margin-left: 20px;">
+  <li>le niveau de pénétration d’internet ;</li>
+  <li>l’intensité de l’usage du numérique ;</li>
+  <li>la disponibilité et la diversité des contenus médiatiques.</li>
+</ul>
+
+ <p style="text-align: justify; font-size: 20px; line-height: 1.6;">
+En résumé, le DMPI doit être interprété comme un **indicateur de sentiment et d’anticipation économique**, venant compléter les statistiques officielles plutôt que de s’y substituer.
+</p> 
+</div>

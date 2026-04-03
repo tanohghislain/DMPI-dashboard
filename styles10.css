@@ -166,7 +166,7 @@
   filter:
     drop-shadow(0 0 12px #ced4da)
     drop-shadow(0 0 25px #ced4da);
-  animation: pulse 5s infinite;
+  animation: pulse 5s infinite ease-in-out;
 }
 
 /* Conteneur titre masqué */
@@ -244,5 +244,14 @@
   .dmpi-title {
     font-size: 0.9rem;
     animation-duration: 20s; /* plus lent sur mobile */
+  }
+   .dmpi-logo {
+    width: 120px;        /* réduit la taille sur mobile */
+    height: auto;
+   /* pulsation plus douce */
+    animation: pulse 2.8s infinite ease-in-out;
+    
+    /* éviter trop d'effet (meilleure perf mobile) */
+    transform: scale(1);
   }
 }
